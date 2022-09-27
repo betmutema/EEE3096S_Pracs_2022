@@ -51,7 +51,7 @@ UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart2_tx;
 
 /* USER CODE BEGIN PV */
-char buffer[100];
+char buffer[1000];
 
 //TO DO:
 //TASK 1
@@ -113,7 +113,7 @@ int main(void)
   MX_ADC_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-  void debugPrintln(UART_HandleTypeDef *uart_handle,char _out[])
+  void Println(UART_HandleTypeDef *uart_handle,char _out[])
     {
     	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8);
     	HAL_UART_Transmit(uart_handle, (uint8_t *) _out,strlen(_out), 60);
@@ -122,8 +122,8 @@ int main(void)
     }
   //TO DO:
   //Create variables needed in while loop
-  uint32_t AdcVal;
-  uint32_t CrrVal;
+  uint32_t adc_Val;
+  uint32_t crr_Val;
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4); //Start the PWM on TIM3 Channel 4 (Green LED)
   /* USER CODE END 2 */
 
@@ -135,19 +135,19 @@ int main(void)
 	  //TO DO:
 	  //TASK 2
 	  //Test your pollADC function and display via UART
-	  AdcVal = pollADC();
-	  sprintf(buffer, "Last ADC value: %6d", AdcVal);
-	  debugPrintln(&huart2, buffer);
+	  adc_Val = pollADC();
+	  sprintf(buffer, "Last ADC value: %6d", adc_Val);
+	  Println(&huart2, buffer);
 	  //TASK 3
 	  //Test your ADCtoCRR function. Display CRR value via UART
-	  CrrVal = ADCtoCRR(AdcVal);
-	  sprintf(buffer, "CRR value: %6d", CrrVal);
-	  debugPrintln(&huart2, buffer);
+	  crr_Val = ADCtoCRR(adc_Val);
+	  sprintf(buffer, "CRR value: %6d", crr_Val);
+	  Println(&huart2, buffer);
 	  //TASK 4
 	  //Complete rest of implementation
-	  __HAL_TIM_SetCompare(&htim3, TIM_CHANNEL_4, ADCtoCRR(AdcVal));
+	  __HAL_TIM_SetCompare(&htim3, TIM_CHANNEL_4, ADCtoCRR(adc_Val));
 
-	  HAL_Delay (500); // wait for 500 ms
+	  HAL_Delay (delay); // wait for 500 ms
 
     /* USER CODE END WHILE */
 
@@ -414,17 +414,17 @@ void EXTI0_1_IRQHandler(void)
 	//TO DO:
 	//TASK 1
 	//Switch delay frequency
-	 if((HAL_GetTick() - debounce)>10){
-	 		if(delay==2000)
-	 		{
-	 			delay=1000;
-	 		}
-	 		else
-	 		{
-	 			delay=1000;
-	 		}
-	 		debounce = HAL_GetTick();
-	 	}
+	debounce = HAL_GetTick(); //ensures exactly 500ms
+
+	if(delay==500 && (debounce > 500))
+	{
+		delay = 1000; //change freq if button pushed
+	}
+	else
+	{
+		delay = 500; //change it back when pushed again
+	}
+
 	HAL_GPIO_EXTI_IRQHandler(B1_Pin); // Clear interrupt flags
 }
 
@@ -448,7 +448,7 @@ uint32_t ADCtoCRR(uint32_t adc_val){
 	//HINT: The CRR value for 100% DC is 47999 (DC = CRR/ARR = CRR/47999)
 	//HINT: The ADC range is approx 0 - 4095
 	//HINT: Scale number from 0-4096 to 0 - 47999
-	uint32_t val = adc_val * 47999/4096;
+	uint32_t val = adc_val * 47999/4096; //factor=ARR/max adc
 
 	return  val;
 }
